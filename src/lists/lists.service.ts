@@ -1,26 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
-import { List } from './entities/list.entity';
-import { InjectModel } from '@nestjs/sequelize';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
-
+import { ListGatewayInterface } from './gateways/list-gateway-interface';
+import { List } from './entities/list.entity';
 // REGRA DE NEGOCIO
 // Criar uma lista no banco de dados e no CRM externo
+// PORT AND ADAPTERS
 @Injectable()
 export class ListsService {
   constructor(
-    @InjectModel(List) // decorator do sequelize para injetar a instancia da model (entidade List)
-    private listModel: typeof List, // tipando com typeof como tipo da entity
+    // o listGatewayInterface é uma porta
+    // faço o registro no module que a listaGatewaySequelize é provida pela interface ListGatewayInterface
+    // permitindo assim que não injete a listaGatewaySequelize para não ter acoplamento mas a utilize
+    // LIST GATEWAY INTERFACE É UMA PORTA
+    @Inject('ListGatewayInterface')
+    private listGateway: ListGatewayInterface, // list gateway é do tipo list gateway interface não dependo do squelize
     private httpService: HttpService, // injetando o httpservice do axios
   ) {}
 
+  // CREATE LIST DTO É UMA PORTA
   async create(createListDto: CreateListDto) {
-    // ALTO ACOPLAMENTO DE CODIGO SENDO DIFICIL TESTAR E TROCAR OS AGENTES
-    const list = await this.listModel.create(createListDto);
-    // last value from é um metodo do rxjs que retorna o ultimo valor de post que é um observable
-    // so depois disso sigo a requisição
+    const list = new List(createListDto.name);
+    // agora o create não esta mais acoplado ao sequelize posso passar qualquer coisa aqui desde que seja do contrato do gateway
+    await this.listGateway.create(list);
     await lastValueFrom(
       // http://localhost:8000/lists essa rota é chamada ja que registrei na module a base url
       // post retorna um observable
@@ -34,11 +38,11 @@ export class ListsService {
   }
 
   findAll() {
-    return this.listModel.findAll();
+    return this.listGateway.findAll();
   }
 
   async findOne(id: number) {
-    const list = await this.listModel.findByPk(id);
+    const list = await this.listGateway.findById(id);
 
     if (!list) {
       throw new Error('List not found');

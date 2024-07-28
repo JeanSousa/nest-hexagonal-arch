@@ -1,13 +1,9 @@
-import { Column, Model, Table } from 'sequelize-typescript';
-
-export type ListAttributes = {
+export class List {
+  id: number;
   name: string;
-};
 
-@Table // decorator table para mostrar que vai estar ligado a uma tabela
-export class List extends Model<ListAttributes> {
-  // coloco o type ListAttributes no generic para o typescript entender que os metodos e propriedades
-  // da model List trabalham com os atributos definidos no type ListAttributes
-  @Column
-  name: string;
+  constructor(name: string, id?: number) {
+    this.id = id;
+    this.name = name;
+  }
 }
