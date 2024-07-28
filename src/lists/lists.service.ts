@@ -15,34 +15,30 @@ export class ListsService {
     // faço o registro no module que a listaGatewaySequelize é provida pela interface ListGatewayInterface
     // permitindo assim que não injete a listaGatewaySequelize para não ter acoplamento mas a utilize
     // LIST GATEWAY INTERFACE É UMA PORTA
-    @Inject('ListGatewayInterface')
-    private listGateway: ListGatewayInterface, // list gateway é do tipo list gateway interface não dependo do squelize
-    private httpService: HttpService, // injetando o httpservice do axios
+    @Inject('ListPersistenceGateway')
+    private listPersistenceGateway: ListGatewayInterface, // list gateway é do tipo list gateway interface não dependo do squelize
+    @Inject('ListIntegrationGateway')
+    private listIntegrationGateway: ListGatewayInterface,
+    // TENHO DOIS GATEWAYS DIFERENTES O DE INTEGRAÇÃO E O PERSISTENCIA (ADAPTERS) MAS ELES RESPEITAM O MESMO CONTRATO
+    // OU SEJA O MESMO LISTGATEWAYINTERFACE (PORTA)
   ) {}
 
   // CREATE LIST DTO É UMA PORTA
   async create(createListDto: CreateListDto) {
     const list = new List(createListDto.name);
     // agora o create não esta mais acoplado ao sequelize posso passar qualquer coisa aqui desde que seja do contrato do gateway
-    await this.listGateway.create(list);
-    await lastValueFrom(
-      // http://localhost:8000/lists essa rota é chamada ja que registrei na module a base url
-      // post retorna um observable
-      this.httpService.post('lists', {
-        // body
-        name: list.name,
-      }),
-    );
+    await this.listPersistenceGateway.create(list);
+    await this.listIntegrationGateway.create(list);
 
     return list;
   }
 
   findAll() {
-    return this.listGateway.findAll();
+    return this.listPersistenceGateway.findAll();
   }
 
   async findOne(id: number) {
-    const list = await this.listGateway.findById(id);
+    const list = await this.listPersistenceGateway.findById(id);
 
     if (!list) {
       throw new Error('List not found');

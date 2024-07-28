@@ -8,16 +8,20 @@ const mockHttpService = {
 
 describe('ListsService', () => {
   let service: ListsService;
-  let listGateway: ListGatewayInMemory;
+  let listPersistenceGateway: ListGatewayInMemory;
+  // vou usar outro gateway com o adapter em memória pois não quero utilizar o chamadas http
+  let listIntegrationGateway: ListGatewayInMemory;
 
   beforeEach(() => {
-    listGateway = new ListGatewayInMemory();
-    service = new ListsService(listGateway, mockHttpService as any);
+    listPersistenceGateway = new ListGatewayInMemory();
+    listIntegrationGateway = new ListGatewayInMemory();
+    service = new ListsService(listPersistenceGateway, listIntegrationGateway);
   });
 
   it('deve criar uma lista', async () => {
     const list = await service.create({ name: 'my list' });
-    expect(listGateway.items).toEqual([list]);
+    expect(listPersistenceGateway.items).toEqual([list]);
+    expect(listIntegrationGateway.items).toEqual([list]);
   });
   // beforeEach(async () => {
   //   const module: TestingModule = await Test.createTestingModule({
